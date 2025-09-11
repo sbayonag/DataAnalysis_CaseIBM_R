@@ -1,0 +1,97 @@
+---
+title: "IBM Attrition"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+---
+
+1.  Exploratory Data Analysis: Queremos saber si la variable en cuestión (Attrition o cualquier otra) está (muy) desbalanceada; qué "resúmenes" podemos hacer con los datos iniciales, también mirar si hay valores faltantes y optar por excluirlos o asignarles un valor por default.
+
+```{r}
+library(ggplot2)
+library(ggcorrplot)
+library(dplyr)
+library(recipes)
+
+# Cargar Data set
+employee_data <- read.csv("/home/sebas/Downloads/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+```
+
+```{r}
+attrition.freq <- table(employee_data$Attrition)
+attrition.freq
+attrition.prop <- prop.table(attrition.freq)
+attrition.prop
+barplot(attrition.freq,
+        main="Employee Attrition Distribution",
+        ylab="Count",
+        xlab="Attrition",
+        col=c("steelblue","tomato"))
+```
+
+Hemos concluído que la variable en cuestión sí está desbalanceada. Por lo cual, el análisis que vamos a llevar a cabo escogerá determinados algoritmos y modelos para compensar dicho desbalance en los datos.
+
+2.  Para continuar, vamos a dividir el data set entre el conjunto de entrenamiento y el conjunto de test.
+
+```{r}
+# This is needed for the following functions that sample data so the experiment can be reproducible.
+set.seed(42)
+
+# 80/20 train/test split, stratified on Attrition
+split <- createDataPartition(employee_data$Attrition, p = 0.8, list = FALSE)
+train <- employee_data[split, ]
+test  <- employee_data[-split, ]
+```
+
+3.  Ahora vamos a realizar un análisis de correlación entre las variables del conjunto de entrenamiento. Esto nos ayudará a identificar si hay variables que están altamente correlacionadas entre sí, lo cual podría afectar el rendimiento de algunos modelos.
+
+```{r}
+# Calcular la matriz de correlación
+
+# Filter zero-variance predictors and convert categorical variables to dummy variables
+rec <- recipe(~ ., data = train) %>%
+  step_nzv(all_predictors()) %>%
+  step_dummy(all_nominal_predictors(), one_hot = FALSE)
+
+rec_trained   <- recipes::prep(rec, training = train)
+train_all_num <- recipes::bake(rec_trained, new_data = train)
+
+# Correlation matrix
+correlation_matrix_all <- cor(train_all_num)
+```
+
+```{r}
+M_masked <- correlation_matrix_all
+M_masked[abs(correlation_matrix_all) <= 0.7] <- NA
+diag(M_masked) <- NA
+
+# Clean and minimalist correlation plot
+ggcorrplot(
+  M_masked,
+  type       = "lower",        # Lower triangle only
+  hc.order   = FALSE,           # Cluster variables
+  lab        = FALSE,          # Do NOT print correlation values (less clutter)
+  show.diag  = FALSE,          # Hide diagonal (always 1)
+  colors     = c("#6D9EC1", "white", "#E46726"),  # Blue-White-Red
+  outline.color = "gray80",    # Thin border
+  ggtheme    = theme_minimal()
+) +
+  theme(
+    axis.text.x = element_text(
+      angle = 60, hjust = 1, size = 6, color = "gray20"
+    ),
+    axis.text.y = element_text(
+      size = 6, color = "gray20"
+    ),
+    plot.title = element_text(size = 14, face = "bold"),
+    legend.title = element_text(size = 9),
+    legend.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Correlation Matrix",
+    x = NULL,
+    y = NULL
+  )
+```
