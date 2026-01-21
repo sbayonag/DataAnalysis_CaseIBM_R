@@ -15,12 +15,13 @@ output:
 ```{r}
 library(ggplot2)
 library(ggcorrplot)
+library(caret)
 library(dplyr)
 library(recipes)
 
 # Cargar Data set
 employee_data <-
-  read.csv("/home/sebas/Downloads/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+  read.csv("data/WA_Fn-UseC_-HR-Employee-Attrition.csv")
 ```
 
 ```{r}
