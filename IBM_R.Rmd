@@ -1,10 +1,9 @@
 ---
 title: "IBM Attrition"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
-  html_notebook: default
+knit: (function(input_file, ...) { rmarkdown::render(input_file, output_dir = "docs", ...) })
 ---
 
 1.  Exploratory Data Analysis: Queremos saber si la variable en cuestión
